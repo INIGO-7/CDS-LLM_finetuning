@@ -1,5 +1,6 @@
 from Bio import SeqIO
 import pandas as pd
+import numpy as np
 import gzip
 import os
 
@@ -46,9 +47,38 @@ def load_resources(ccds_path, fasta_seq_path, human_gen_path, verbose=False):
             if i >= 5:
                 break
             if i == 0: print(f"-- [ID #{i+1}: {record.id}]", end="")
-            else: print(f"  [ID #{i+1}: {record.id}]", end="")
+            else: print(
+                f"  [ID #{i+1}: {record.id}]", 
+                end="" if i!=4 else "\n"
+                )
 
     return ccds_df, cds_sequences, genome
+
+def find_sequence_by_id(fasta_file, target_id):
+    """
+    Find and return a sequence with a specific ID from a FASTA file.
+    
+    Parameters:
+    -----------
+    fasta_file : biopython..... ?
+        The already parsed FASTA file
+    target_id : str
+        Identifier of the sequence to find
+    
+    Returns:
+    --------
+    Biopython SeqRecord object if found, None otherwise
+    """
+    
+    # Iterate through all records in the FASTA file
+    for record in fasta_file:
+        # Check if the current record's ID matches the target ID
+        if record.id == target_id:
+            return record
+    
+    # If no matching sequence is found
+    print(f"No sequence found with ID: {target_id}")
+    return None
 
 def main():
 
@@ -64,17 +94,54 @@ def main():
     max_seq_length = 1000
     
     ccds_df, cds_sequences, genome = load_resources(
-        os.path.join(res_dir, ccds_file),
-        os.path.join(res_dir, fasta_file),
-        os.path.join(res_dir, genome_file),
+        os.path.join(res_dir, ccds_file),   # DataFrame
+        os.path.join(res_dir, fasta_file),  # Dictionary
+        os.path.join(res_dir, genome_file), # Fasta BioSeq
         verbose=True
     )
 
-    # Specify the chromosome and region
-    # chromosome = 1      # Replace with the correct identifier
-    # start = 925941 - 1  # Convert to 0-based indexing
-    # end = 926012        # 1-based indexing end
-    # nc_accession = "NC_000001.11"
+    consistency_results = []
 
+    for idx, row in ccds_df.iterrows():
+        # Just testing for now...
+        # if idx == 2: break
+
+        if row["ccds_id"] in cds_sequences:
+            locs = row[ "cds_locations" ].replace( '[', '' ).replace( ']', '' )
+
+            locs_clean = [ l.strip() for l in locs.split(",") ]
+            ccds_start = 0
+            test_counter = 0
+
+            for loc in locs_clean:
+    
+                split = loc.split( '-' )
+                start, stop = int( split[0] ), int( split[1] )
+
+                # Add one because both start and stop elements are included
+                distance = stop-start + 1
+                ccds_stop = ccds_start + distance
+
+                print( f"Genomic idx (start:stop) -> ({start}:{stop})" )
+                print( f"ID -{row['ccds_id']}- start: {ccds_start}, stop: {ccds_stop}" )
+
+                # Add one because string printing in python does not include stop idx
+                print( f"CDS SEQ: {cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1]}" )
+
+                ccds_start = ccds_stop
+                test_counter += distance
+        else:
+            print( f"The ccds_id '{row['ccds_id']}' isn't found in the nucleotide file")
+            continue
+        seqlength = len(cds_sequences[row['ccds_id']])
+        print(f"sequence's length = {seqlength}")
+        print(f"Thought cds length = {test_counter}")
+        consistency_results.append(seqlength == test_counter)
+
+    if np.all(consistency_results):
+        print('Consistency test passed')
+    else:
+        print(f'Inconsistencies found: {np.sum(consistency_results)}')
+    
 if __name__ == "__main__":
     main()
