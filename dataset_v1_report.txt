@@ -1,0 +1,8 @@
+Not all the tuples are consistent. The number of faulty is tuples: 17494/35624
+This is suspicious, all the tuples that are faulty miss 100% of the cds, meaning none of the coding regions defined in their CCDS dataset 
+occurence are found in the human genome file, for the number of accession specified.
+
+It would be normal to miss some of the cds in certain tuples of the dataset, but not every single CDS. This might indicate that we are 
+lacking some knowledge about the dataset and that we should perhaps handle accession numbers differently, or some other issue.
+
+Still, we have created 18_130 valid tuples, which would be enough to start with the fine-tuning process.

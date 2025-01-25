@@ -1,8 +1,7 @@
 from Bio import SeqIO
 import pandas as pd
 import numpy as np
-import gzip
-import os
+import os, pysam, random, json, gzip
 
 def load_resources(ccds_path, fasta_seq_path, human_gen_path, verbose=False):
 
@@ -18,6 +17,9 @@ def load_resources(ccds_path, fasta_seq_path, human_gen_path, verbose=False):
             comment='#', 
             names=columns
         )
+
+        ccds_df = ccds_df[ccds_df["ccds_status"] != "Withdrawn"]
+
         if verbose:
             print(f"-- Loaded the CCDS dataset with '{ccds_df.shape[0]}' entries")
         
@@ -40,19 +42,10 @@ def load_resources(ccds_path, fasta_seq_path, human_gen_path, verbose=False):
         return 0
     
     # Load the human genome
-    genome = SeqIO.parse(human_gen_path, "fasta-pearson")
+    genome_fasta = pysam.FastaFile(human_gen_path)
+    print(f"-- Loaded human sequences from fasta file")
 
-    if verbose:
-        for i, record in enumerate(genome):
-            if i >= 5:
-                break
-            if i == 0: print(f"-- [ID #{i+1}: {record.id}]", end="")
-            else: print(
-                f"  [ID #{i+1}: {record.id}]", 
-                end="" if i!=4 else "\n"
-                )
-
-    return ccds_df, cds_sequences, genome
+    return ccds_df, cds_sequences, genome_fasta
 
 def find_sequence_by_id(fasta_file, target_id):
     """
@@ -80,6 +73,67 @@ def find_sequence_by_id(fasta_file, target_id):
     print(f"No sequence found with ID: {target_id}")
     return None
 
+def get_seq_fragment(fasta_file, accession_number, start, end):
+
+    # Retrieve the sequence
+    try:
+        sequence = fasta_file.fetch(accession_number, start, end)
+        return sequence.upper()     # Return uppercase
+    except KeyError:
+        print(f"Accession number {accession_number} not found in the FASTA file.")
+
+def create_dataset(ccds_df, cds_sequences, genome_fasta):
+
+    dataset = []
+
+    for idx, row in ccds_df.iterrows():
+        # Just testing for now...
+        # if idx == 2: break
+
+        if row["ccds_id"] in cds_sequences:
+            locs = row[ "cds_locations" ].replace( '[', '' ).replace( ']', '' )
+
+            locs_clean = [ l.strip() for l in locs.split(",") ]
+            ccds_start = 0
+            target = ""
+
+            for idx, loc in enumerate(locs_clean):
+
+                split = loc.split( '-' )
+                start, stop = int( split[0] ), int( split[1] )
+
+                distance = stop-start
+                ccds_stop = ccds_start + distance
+
+                # Add one because string printing in python does not include stop idx
+                # print( f"CDS SEQ: {cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1]}" )
+                if idx < len(locs_clean) - 1: target += cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1] + ';'
+                else: target += cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1]
+
+                ccds_start = ccds_stop + 1
+
+            padding_left, padding_right = random.randint(0, 300), random.randint(0, 300)
+
+            feature_start = int( row['cds_from'] ) - padding_left
+            if feature_start < 0: feature_start = 0
+
+            feature_end = int( row['cds_to'] ) + padding_right
+            # if feature_end < ??: feature_end = len(??)
+
+            train_sample = get_seq_fragment(genome_fasta, row[ "nc_accession" ], feature_start, feature_end)
+            if not train_sample:
+                print(f"The training feature for cds'id '{row['ccds_id']}' and " +
+                        f"nc_accession '{row[ 'nc_accession' ]}' can't be found")
+                
+            description = f"CCDS_ID: {row[ 'ccds_id' ]}, NC_ACCESSION: {row[ 'nc_accession' ]}"
+            is_consistent = 1 if np.all([cds in train_sample for cds in target.split(';')]) else 0
+            dataset.append( [ description, train_sample, target, is_consistent ] )
+        else:
+            print( f"The ccds_id '{row['ccds_id']}' isn't found in the nucleotide file")
+            continue
+
+    return dataset
+
 def main():
 
     # Define the file path
@@ -93,55 +147,44 @@ def main():
     output_file = "training_examples.json"
     max_seq_length = 1000
     
-    ccds_df, cds_sequences, genome = load_resources(
+    ccds_df, cds_sequences, genome_fasta = load_resources(
         os.path.join(res_dir, ccds_file),   # DataFrame
         os.path.join(res_dir, fasta_file),  # Dictionary
-        os.path.join(res_dir, genome_file), # Fasta BioSeq
+        os.path.join(res_dir, genome_file), # Pysam fasta
         verbose=True
     )
 
-    consistency_results = []
+    dataset = create_dataset(
+        ccds_df, 
+        cds_sequences, 
+        genome_fasta
+    )
 
-    for idx, row in ccds_df.iterrows():
-        # Just testing for now...
-        # if idx == 2: break
-
-        if row["ccds_id"] in cds_sequences:
-            locs = row[ "cds_locations" ].replace( '[', '' ).replace( ']', '' )
-
-            locs_clean = [ l.strip() for l in locs.split(",") ]
-            ccds_start = 0
-            test_counter = 0
-
-            for loc in locs_clean:
+    to_be_consistent = []
     
-                split = loc.split( '-' )
-                start, stop = int( split[0] ), int( split[1] )
+    # for tuple in dataset:
+    #     sequence = tuple[1]
+    #     cdss = tuple[2].split(";")
+    #     print(f"Description: {tuple[0]}")
+    #     for cds in cdss:
+    #         to_be_consistent.append(cds in sequence)
+    #         if not cds in sequence:
+    #             print(f"-NOT FOUND: {cds}")
+    #         else:
+    #             print(f"-found: {cds}")
 
-                # Add one because both start and stop elements are included
-                distance = stop-start + 1
-                ccds_stop = ccds_start + distance
+    #     to_be_consistent = []
 
-                print( f"Genomic idx (start:stop) -> ({start}:{stop})" )
-                print( f"ID -{row['ccds_id']}- start: {ccds_start}, stop: {ccds_stop}" )
+    for tuple in dataset:
+        to_be_consistent.append(True if tuple[3] == 1 else False)
 
-                # Add one because string printing in python does not include stop idx
-                print( f"CDS SEQ: {cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1]}" )
-
-                ccds_start = ccds_stop
-                test_counter += distance
-        else:
-            print( f"The ccds_id '{row['ccds_id']}' isn't found in the nucleotide file")
-            continue
-        seqlength = len(cds_sequences[row['ccds_id']])
-        print(f"sequence's length = {seqlength}")
-        print(f"Thought cds length = {test_counter}")
-        consistency_results.append(seqlength == test_counter)
-
-    if np.all(consistency_results):
-        print('Consistency test passed')
+    if np.all(to_be_consistent):
+        print("Consistency test passed!")
     else:
-        print(f'Inconsistencies found: {np.sum(consistency_results)}')
-    
+        print(f"Not all are consistent. Number of faulty tuples: {len(to_be_consistent) - np.sum(to_be_consistent)}/{len(to_be_consistent)}")
+
+    with open(os.path.join(output_dir, 'dataset.json'), 'w') as json_file:
+        json.dump(dataset, json_file, indent=4)
+
 if __name__ == "__main__":
     main()
