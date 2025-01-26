@@ -1,3 +1,4 @@
+from sklearn.model_selection import train_test_split
 from Bio import SeqIO
 import pandas as pd
 import numpy as np
@@ -127,7 +128,14 @@ def create_dataset(ccds_df, cds_sequences, genome_fasta):
                 
             description = f"CCDS_ID: {row[ 'ccds_id' ]}, NC_ACCESSION: {row[ 'nc_accession' ]}"
             is_consistent = 1 if np.all([cds in train_sample for cds in target.split(';')]) else 0
-            dataset.append( [ description, train_sample, target, is_consistent ] )
+            # dataset.append( [ description, train_sample, target, is_consistent ] )
+            if is_consistent == 1:
+                dataset.append( {
+                    "input":f"Please identify every coding region in this eukaryotic RNA sequence: {train_sample}",
+                    "output":f"{target}",
+                    "input_len": len(train_sample) + 69
+                    } 
+                )
         else:
             print( f"The ccds_id '{row['ccds_id']}' isn't found in the nucleotide file")
             continue
@@ -160,31 +168,31 @@ def main():
         genome_fasta
     )
 
-    to_be_consistent = []
-    
+    train_val, test = train_test_split(dataset, test_size=0.1, random_state=42)
+    train, val = train_test_split(train_val, test_size=0.1111, random_state=42)  # 0.1111 * 0.9 = 0.1
+
+    print("-- Dataset extracted successfully.")
+    print(f"   - Training set size: {len(train)}")
+    print(f"   - Validation set size: {len(val)}")
+    print(f"   - Test set size: {len(test)}")
+
+    # acc = 0
     # for tuple in dataset:
-    #     sequence = tuple[1]
-    #     cdss = tuple[2].split(";")
-    #     print(f"Description: {tuple[0]}")
-    #     for cds in cdss:
-    #         to_be_consistent.append(cds in sequence)
-    #         if not cds in sequence:
-    #             print(f"-NOT FOUND: {cds}")
-    #         else:
-    #             print(f"-found: {cds}")
+    #     if tuple["input_len"] > 2000:
+    #         acc += 1
 
-    #     to_be_consistent = []
+    # print(f"The number of tuples with more than 2000 chars is: {acc}")
 
-    for tuple in dataset:
-        to_be_consistent.append(True if tuple[3] == 1 else False)
+    with open(os.path.join(output_dir, 'train_set.json'), 'w') as json_file:
+        json.dump(train, json_file, indent=3)
 
-    if np.all(to_be_consistent):
-        print("Consistency test passed!")
-    else:
-        print(f"Not all are consistent. Number of faulty tuples: {len(to_be_consistent) - np.sum(to_be_consistent)}/{len(to_be_consistent)}")
+    with open(os.path.join(output_dir, 'val_set.json'), 'w') as json_file:
+        json.dump(val, json_file, indent=3)
 
-    with open(os.path.join(output_dir, 'dataset.json'), 'w') as json_file:
-        json.dump(dataset, json_file, indent=4)
+    with open(os.path.join(output_dir, 'test_set.json'), 'w') as json_file:
+        json.dump(test, json_file, indent=3)
+
+    print(f"Train, Val and Test sets saved in '/{output_dir}' directory")
 
 if __name__ == "__main__":
     main()
