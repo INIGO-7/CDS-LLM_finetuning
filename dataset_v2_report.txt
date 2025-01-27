@@ -1,0 +1,6 @@
+Still has inconsistent tuples. The number of faulty is tuples: 17494/35624
+
+Changes for this version are:
+    - Creation of train, eval and test splits
+    - Now have the cds index in the retrieved sequence to train the model with
+    - Keeping the cds nucleotides just in case

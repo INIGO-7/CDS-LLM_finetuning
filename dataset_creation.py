@@ -92,27 +92,8 @@ def create_dataset(ccds_df, cds_sequences, genome_fasta):
         # if idx == 2: break
 
         if row["ccds_id"] in cds_sequences:
-            locs = row[ "cds_locations" ].replace( '[', '' ).replace( ']', '' )
 
-            locs_clean = [ l.strip() for l in locs.split(",") ]
-            ccds_start = 0
-            target = ""
-
-            for idx, loc in enumerate(locs_clean):
-
-                split = loc.split( '-' )
-                start, stop = int( split[0] ), int( split[1] )
-
-                distance = stop-start
-                ccds_stop = ccds_start + distance
-
-                # Add one because string printing in python does not include stop idx
-                # print( f"CDS SEQ: {cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1]}" )
-                if idx < len(locs_clean) - 1: target += cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1] + ';'
-                else: target += cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1]
-
-                ccds_start = ccds_stop + 1
-
+            # Getting training feature samples:
             padding_left, padding_right = random.randint(0, 300), random.randint(0, 300)
 
             feature_start = int( row['cds_from'] ) - padding_left
@@ -122,18 +103,52 @@ def create_dataset(ccds_df, cds_sequences, genome_fasta):
             # if feature_end < ??: feature_end = len(??)
 
             train_sample = get_seq_fragment(genome_fasta, row[ "nc_accession" ], feature_start, feature_end)
+
+            # Getting target feature samples
+            locs = row[ "cds_locations" ].replace( '[', '' ).replace( ']', '' )
+
+            locs_clean = [ l.strip() for l in locs.split(",") ]
+            ccds_start = 0
+            sequence_start = padding_left
+            output_positions = ""
+            output_sequences = ""
+
+            for idx, loc in enumerate(locs_clean):
+
+                split = loc.split( '-' )
+                start = int( split[0] )
+                
+                # Start is the distance between previous stop and new start, added to the previous sequence_stop
+                if idx != 0: sequence_start = sequence_stop + (start - stop)
+
+                stop = int( split[1] )
+
+                distance = stop - start
+                ccds_stop, sequence_stop = ccds_start + distance, sequence_start + distance
+
+                if idx < len(locs_clean) - 1:
+                    output_positions += f"{sequence_start}-{sequence_stop+1}" + ","
+                    output_sequences += cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1] + ';'
+
+                else: 
+                    output_positions += f"{ccds_start}-{ccds_stop+1}"
+                    output_sequences += cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1]
+
+                ccds_start = ccds_stop + 1
+
             if not train_sample:
                 print(f"The training feature for cds'id '{row['ccds_id']}' and " +
                         f"nc_accession '{row[ 'nc_accession' ]}' can't be found")
                 
             description = f"CCDS_ID: {row[ 'ccds_id' ]}, NC_ACCESSION: {row[ 'nc_accession' ]}"
-            is_consistent = 1 if np.all([cds in train_sample for cds in target.split(';')]) else 0
+            is_consistent = 1 if np.all([cds in train_sample for cds in output_sequences.split(';')]) else 0
             # dataset.append( [ description, train_sample, target, is_consistent ] )
             if is_consistent == 1:
                 dataset.append( {
-                    "input":f"Please identify every coding region in this eukaryotic RNA sequence: {train_sample}",
-                    "output":f"{target}",
-                    "input_len": len(train_sample) + 69
+                    "input": train_sample,
+                    "output_positions": output_positions,
+                    "output_sequences": output_sequences,
+                    "input_len": len(train_sample)
                     } 
                 )
         else:
