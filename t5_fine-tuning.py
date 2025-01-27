@@ -1,6 +1,3 @@
-import os
-import torch
-import logging
 from transformers import (
     PreTrainedTokenizerFast,
     T5ForConditionalGeneration,
@@ -9,8 +6,11 @@ from transformers import (
     DataCollatorForSeq2Seq,
     TrainerCallback
 )
-from torch.utils.data import Dataset
+import os
 import json
+import torch
+import logging
+from torch.utils.data import Dataset
 
 # Configure logging
 logging.basicConfig(
@@ -19,36 +19,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
-
-# Custom DNA vocabulary including positional tokens
-DNA_VOCAB = {
-    "<pad>": 0,
-    "<unk>": 1,
-    "<task>": 2,
-    "A": 3, "T": 4, "C": 5, "G": 6,
-    "-": 7, ",": 8, "0": 9, "1": 10, "2": 11, "3": 12,
-    "4": 13, "5": 14, "6": 15, "7": 16, "8": 17, "9": 18
-}
-
-class DNATokenizer(PreTrainedTokenizerFast):
-    def __init__(self, **kwargs):
-        super().__init__(
-            vocab=DNA_VOCAB,
-            unk_token="<unk>",
-            pad_token="<pad>",
-            additional_special_tokens=["<task>"],
-            model_max_length=512,
-            **kwargs
-        )
-
-    def _tokenize(self, text):
-        return list(text)
-
-    def _convert_token_to_id(self, token):
-        return self.vocab.get(token, self.vocab["<unk>"])
-
-    def _convert_id_to_token(self, index):
-        return {v: k for k, v in self.vocab.items()}.get(index, "<unk>")
 
 def chunk_sequence(input_text, tokenizer, max_length=512, stride=256):
     """Chunk sequences while preserving task context"""
@@ -62,8 +32,8 @@ def chunk_sequence(input_text, tokenizer, max_length=512, stride=256):
         chunk = tokens[start:end]
         
         # Add task token if missing
-        if chunk[0] != tokenizer.vocab["<task>"]:
-            chunk = [tokenizer.vocab["<task>"]] + chunk
+        if chunk[0] != tokenizer.convert_tokens_to_ids("<task>"):
+            chunk = tokenizer.convert_tokens_to_ids("<task>") + chunk
         
         # Pad if necessary
         if len(chunk) < max_length:
@@ -88,7 +58,7 @@ def preprocess_with_chunking(dataset, tokenizer, max_length=512, stride=256):
         
         # Format input with task prefix
         input_text = f"<task>DetectCDS|{item['input']}"
-        output_text = item['output']
+        output_text = item['output_positions']
         
         # Generate chunks
         chunks = chunk_sequence(input_text, tokenizer, max_length, stride)
@@ -138,9 +108,14 @@ class TrainingMonitor(TrainerCallback):
             for k, v in metrics.items():
                 logger.info(f"  {k}: {v:.4f}")
 
-def fine_tune_t5(train_path, val_path, output_dir):
+def fine_tune_t5(train_path, val_path, output_dir, tokenizer_path):
     # Initialize custom tokenizer
-    tokenizer = DNATokenizer()
+    tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_path)
+    tokenizer.pad_token = "<pad>"
+    tokenizer.unk_token = "<unk>"
+    tokenizer.add_special_tokens({"additional_special_tokens": ["<task>"]})
+    tokenizer.model_max_length = 512
+    
     logger.info("Initialized DNA tokenizer with vocabulary size: %d", len(tokenizer))
     
     # Load and preprocess data
@@ -205,8 +180,9 @@ def main():
     output_dir = "models"
     train_path = os.path.join(datasets_dir, "train_set.json")
     val_path = os.path.join(datasets_dir, "val_set.json")
+    tokenizer_path = os.path.join(output_dir, "dna_tokenizer.json")
     
-    fine_tune_t5(train_path, val_path, output_dir)
+    fine_tune_t5(train_path, val_path, output_dir, tokenizer_path)
 
 if __name__ == "__main__":
     main()
