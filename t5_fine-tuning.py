@@ -9,6 +9,7 @@ from transformers import (
 import os
 import json
 import torch
+import random
 import logging
 from torch.utils.data import Dataset
 
@@ -108,7 +109,38 @@ class TrainingMonitor(TrainerCallback):
             for k, v in metrics.items():
                 logger.info(f"  {k}: {v:.4f}")
 
-def fine_tune_t5(train_path, val_path, output_dir, tokenizer_path):
+# Load and preprocess data
+def load_and_sample_data(file_path, percentage):
+    logger.info("Loading data from %s...", file_path)
+    with open(file_path) as f:
+        data = json.load(f)
+    
+    logger.info("Original dataset size: %d", len(data))
+
+    if percentage < 100:
+        sample_size = max(1, int(len(data) * (percentage / 100)))
+        data = random.sample(data, sample_size)
+        logger.info("Sampled dataset size: %d (%.1f%% of original)", len(data), percentage)
+    else:
+        logger.info("Using the entire dataset.")
+
+    return data
+
+def fine_tune_t5(train_path, val_path, output_dir, tokenizer_path, dataset_use_percentage=100):
+    """
+    Fine-tune a T5 model with a custom DNA tokenizer and a specified percentage of the dataset.
+
+    Args:
+        train_path (str): Path to the training data JSON file.
+        val_path (str): Path to the validation data JSON file.
+        output_dir (str): Directory to save the fine-tuned model.
+        tokenizer_path (str): Path to the custom tokenizer file.
+        dataset_percentage (int): Percentage of data to use from train and eval datasets (0 to 100). Default is 100.
+    """
+
+    if not (0 <= dataset_use_percentage <= 100):
+        raise ValueError("dataset_percentage must be between 0 and 100")
+    
     # Initialize custom tokenizer
     tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_path)
     tokenizer.pad_token = "<pad>"
@@ -117,15 +149,15 @@ def fine_tune_t5(train_path, val_path, output_dir, tokenizer_path):
     tokenizer.model_max_length = 512
     
     logger.info("Initialized DNA tokenizer with vocabulary size: %d", len(tokenizer))
-    
-    # Load and preprocess data
-    logger.info("Loading training data...")
-    with open(train_path) as f:
-        train_data = preprocess_with_chunking(json.load(f), tokenizer)
-    
-    logger.info("Loading validation data...")
-    with open(val_path) as f:
-        val_data = preprocess_with_chunking(json.load(f), tokenizer)
+
+    train_data = preprocess_with_chunking(
+        load_and_sample_data( train_path, dataset_use_percentage ), 
+        tokenizer
+        )
+    val_data = preprocess_with_chunking(
+        load_and_sample_data( val_path, dataset_use_percentage ), 
+        tokenizer
+        )
 
     # Create datasets
     train_dataset = PositionDataset(train_data, tokenizer)
@@ -176,13 +208,22 @@ def fine_tune_t5(train_path, val_path, output_dir, tokenizer_path):
     logger.info("Training complete! Model saved to %s", output_dir)
 
 def main():
+    # Fine-tuning configuration parameters
     datasets_dir = "output"
     output_dir = "models"
     train_path = os.path.join(datasets_dir, "train_set.json")
     val_path = os.path.join(datasets_dir, "val_set.json")
     tokenizer_path = os.path.join(output_dir, "dna_tokenizer.json")
-    
-    fine_tune_t5(train_path, val_path, output_dir, tokenizer_path)
+    data_percentage = 10
+
+    # Execute the fine-tuning pipeline    
+    fine_tune_t5(
+        train_path=train_path, 
+        val_path=val_path, 
+        output_dir=output_dir, 
+        tokenizer_path=tokenizer_path,
+        dataset_use_percentage=data_percentage
+        )
 
 if __name__ == "__main__":
     main()
