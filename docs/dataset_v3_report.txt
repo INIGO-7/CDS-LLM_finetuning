@@ -1,0 +1,27 @@
+Still has inconsistent tuples. The number of faulty is tuples: 17494/35624
+These tuples are still ignored, so we only have rigorous training data.
+
+This new dataset has been configured according to openAI's fine-tuning guide-
+lines, there are less tuples because only tuples with an input length lower
+than 65536 (training's max context lenght), can be used (without strategies 
+like chunking or truncating). The format of each tuple is as follows:
+
+{
+"messages": 
+    [
+        {"role": "system", "content": "You're an expert in biology who can 
+            perfectly locate all the coding regions in a nucleotide sequence, 
+            retrieving their indexes in the sequence"}, 
+        {"role": "user", "content": "Detect the coding regions in the 
+            following nucleotide sequence: GGTTGATTCTGAGGTGCACTGTGGGAAG..."}, 
+        {"role": "assistant", "content": Here are the indexes of the 
+            detected coding regions: "95-111,657-724,3900-3993..."}
+    ]
+}
+
+'system' indicates the behavior of the model
+'user' denotes the expected input and training sample
+'assistant' shows what the output for that input should be, with the target ft.
+
+The tuples are saved in a jsonl format, which is a special json type that
+has one ocurrence per line of the file.

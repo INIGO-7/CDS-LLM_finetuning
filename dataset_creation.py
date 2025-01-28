@@ -86,6 +86,9 @@ def get_seq_fragment(fasta_file, accession_number, start, end):
 def create_dataset(ccds_df, cds_sequences, genome_fasta):
 
     dataset = []
+    behavior_template = "You're an expert in biology who can perfectly locate all the coding regions in a nucleotide sequence, retrieving their indexes in the sequence"
+    Q_template = "Detect the coding regions in the following nucleotide sequence: "
+    A_template = "Here are the indexes of the detected coding regions: "
 
     for idx, row in ccds_df.iterrows():
         # Just testing for now...
@@ -143,14 +146,15 @@ def create_dataset(ccds_df, cds_sequences, genome_fasta):
             description = f"CCDS_ID: {row[ 'ccds_id' ]}, NC_ACCESSION: {row[ 'nc_accession' ]}"
             is_consistent = 1 if np.all([cds in train_sample for cds in output_sequences.split(';')]) else 0
             # dataset.append( [ description, train_sample, target, is_consistent ] )
-            if is_consistent == 1:
-                dataset.append( {
-                    "input": train_sample,
-                    "output_positions": output_positions,
-                    "output_sequences": output_sequences,
-                    "input_len": len(train_sample)
-                    } 
-                )
+            if is_consistent == 1 and len(train_sample) < 65536:
+                dataset.append({
+                    "messages": 
+                        [
+                            {"role": "system", "content": behavior_template}, 
+                            {"role": "user", "content":  Q_template + train_sample}, 
+                            {"role": "assistant", "content": A_template + output_positions}
+                        ]
+                    })
         else:
             print( f"The ccds_id '{row['ccds_id']}' isn't found in the nucleotide file")
             continue
@@ -164,7 +168,7 @@ def main():
     # Different project paths and settings
     res_dir = "res"
     output_dir = "output"
-    dataset_folder = os.path.join(output_dir, "dataset_v2")
+    dataset_folder = os.path.join(output_dir, "dataset_v3")
     ccds_file = "CCDS.current.txt"
     fasta_file = "CCDS_nucleotide.current.fna.gz"
     genome_file = "GCF_000001405.40_GRCh38.p14_genomic.fna"
@@ -199,14 +203,17 @@ def main():
 
     # print(f"The number of tuples with more than 2000 chars is: {acc}")
 
-    with open(os.path.join(dataset_folder, 'train_set.json'), 'w') as json_file:
-        json.dump(train, json_file, indent=3)
+    with open(os.path.join(dataset_folder, 'train_set.jsonl'), 'w') as json_file:
+        for example in train:
+            json_file.write(json.dumps(example) + '\n')
 
-    with open(os.path.join(dataset_folder, 'val_set.json'), 'w') as json_file:
-        json.dump(val, json_file, indent=3)
+    with open(os.path.join(dataset_folder, 'val_set.jsonl'), 'w') as json_file:
+        for example in val:
+            json_file.write(json.dumps(example) + '\n')
 
-    with open(os.path.join(dataset_folder, 'test_set.json'), 'w') as json_file:
-        json.dump(test, json_file, indent=3)
+    with open(os.path.join(dataset_folder, 'test_set.jsonl'), 'w') as json_file:
+        for example in test:
+            json_file.write(json.dumps(example) + '\n')
 
     print(f"Train, Val and Test sets saved in '/{dataset_folder}' directory")
 
