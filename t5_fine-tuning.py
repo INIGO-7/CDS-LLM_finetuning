@@ -100,14 +100,21 @@ class PositionDataset(Dataset):
 
 class TrainingMonitor(TrainerCallback):
     def on_log(self, args, state, control, logs=None, **kwargs):
-        if state.is_local_process_zero:
-            logger.info(f"Step {state.global_step} - Loss: {logs.get('loss', 'NA'):.4f}")
+        if state.is_local_process_zero and logs:
+            loss_value = logs.get('loss', None)
+            if loss_value is not None:
+                logger.info(f"Step {state.global_step} - Loss: {loss_value:.4f}")
+            else:
+                logger.info(f"Step {state.global_step} - Loss metrics not available")
     
     def on_evaluate(self, args, state, control, metrics=None, **kwargs):
-        if metrics:
-            logger.info("Validation Results:")
+        if state.is_local_process_zero and metrics:
+            logger.info("Evaluation Results:")
             for k, v in metrics.items():
-                logger.info(f"  {k}: {v:.4f}")
+                if isinstance(v, float):
+                    logger.info(f"  {k}: {v:.4f}")
+                else:
+                    logger.info(f"  {k}: {v}")
 
 # Load and preprocess data
 def load_and_sample_data(file_path, percentage):
