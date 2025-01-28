@@ -131,7 +131,7 @@ def create_dataset(ccds_df, cds_sequences, genome_fasta):
                     output_sequences += cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1] + ';'
 
                 else: 
-                    output_positions += f"{ccds_start}-{ccds_stop+1}"
+                    output_positions += f"{sequence_start}-{sequence_stop+1}"
                     output_sequences += cds_sequences[row['ccds_id']][ccds_start:ccds_stop+1]
 
                 ccds_start = ccds_stop + 1
@@ -164,6 +164,7 @@ def main():
     # Different project paths and settings
     res_dir = "res"
     output_dir = "output"
+    dataset_folder = os.path.join(output_dir, "dataset_v2")
     ccds_file = "CCDS.current.txt"
     fasta_file = "CCDS_nucleotide.current.fna.gz"
     genome_file = "GCF_000001405.40_GRCh38.p14_genomic.fna"
@@ -198,16 +199,16 @@ def main():
 
     # print(f"The number of tuples with more than 2000 chars is: {acc}")
 
-    with open(os.path.join(output_dir, 'train_set.json'), 'w') as json_file:
+    with open(os.path.join(dataset_folder, 'train_set.json'), 'w') as json_file:
         json.dump(train, json_file, indent=3)
 
-    with open(os.path.join(output_dir, 'val_set.json'), 'w') as json_file:
+    with open(os.path.join(dataset_folder, 'val_set.json'), 'w') as json_file:
         json.dump(val, json_file, indent=3)
 
-    with open(os.path.join(output_dir, 'test_set.json'), 'w') as json_file:
+    with open(os.path.join(dataset_folder, 'test_set.json'), 'w') as json_file:
         json.dump(test, json_file, indent=3)
 
-    print(f"Train, Val and Test sets saved in '/{output_dir}' directory")
+    print(f"Train, Val and Test sets saved in '/{dataset_folder}' directory")
 
 if __name__ == "__main__":
     main()
