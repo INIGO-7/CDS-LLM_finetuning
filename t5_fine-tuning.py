@@ -50,7 +50,7 @@ def chunk_sequence(input_text, tokenizer, max_length=512, stride=256):
     
     return chunks
 
-def preprocess_with_chunking(dataset, tokenizer, max_length=512, stride=256):
+def preprocess_with_chunking(dataset, tokenizer, task_prefix, max_length=512, stride=256):
     """Preprocess with DNA-aware chunking"""
     chunked_data = []
     for idx, item in enumerate(dataset):
@@ -58,7 +58,7 @@ def preprocess_with_chunking(dataset, tokenizer, max_length=512, stride=256):
             logger.info(f"Processing item {idx}/{len(dataset)}")
         
         # Format input with task prefix
-        input_text = f"<task>DetectCDS|{item['input']}"
+        input_text = f"<task>{task_prefix}|{item['input']}"
         output_text = item['output_positions']
         
         # Generate chunks
@@ -133,7 +133,7 @@ def load_and_sample_data(file_path, percentage):
 
     return data
 
-def fine_tune_t5(train_path, val_path, output_dir, tokenizer_path, dataset_use_percentage=100):
+def fine_tune_t5(train_path, val_path, output_dir, tokenizer_path, task_prefix, dataset_use_percentage=100):
     """
     Fine-tune a T5 model with a custom DNA tokenizer and a specified percentage of the dataset.
 
@@ -159,11 +159,13 @@ def fine_tune_t5(train_path, val_path, output_dir, tokenizer_path, dataset_use_p
 
     train_data = preprocess_with_chunking(
         load_and_sample_data( train_path, dataset_use_percentage ), 
-        tokenizer
+        tokenizer,
+        task_prefix=task_prefix
         )
     val_data = preprocess_with_chunking(
         load_and_sample_data( val_path, dataset_use_percentage ), 
-        tokenizer
+        tokenizer,
+        task_prefix=task_prefix
         )
 
     # Create datasets
@@ -222,13 +224,15 @@ def main():
     val_path = os.path.join(datasets_dir, "val_set.json")
     tokenizer_path = os.path.join(output_dir, "dna_tokenizer.json")
     data_percentage = 10
+    task_prefix = "Detect the coding regions in the following nucleotide sequence, "
 
     # Execute the fine-tuning pipeline    
     fine_tune_t5(
-        train_path=train_path, 
-        val_path=val_path, 
-        output_dir=output_dir, 
+        train_path=train_path,
+        val_path=val_path,
+        output_dir=output_dir,
         tokenizer_path=tokenizer_path,
+        task_prefix=task_prefix,
         dataset_use_percentage=data_percentage
         )
 

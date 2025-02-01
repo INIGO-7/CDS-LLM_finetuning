@@ -83,10 +83,10 @@ def get_seq_fragment(fasta_file, accession_number, start, end):
     except KeyError:
         print(f"Accession number {accession_number} not found in the FASTA file.")
 
-def create_dataset(ccds_df, cds_sequences, genome_fasta):
+def create_dataset(ccds_df, cds_sequences, genome_fasta, max_sample_len):
 
     dataset = []
-    behavior_template = "You're an expert in biology who can perfectly locate all the coding regions in a nucleotide sequence, retrieving their indexes in the sequence"
+    behavior_template = "You're an expert in biology who can perfectly locate all the coding segments in a nucleotide sequence, retrieving their indexes in the sequence, taking into account that DNA coding segments of genes are delimited by four types of signals: start codons (ATG), stop codons (usually TAG, TGA, or TAA), donor sites (usually GT), and acceptor sites (AG). With this information you are able to use this nucleotide sequence where coding regions are to be detected:"
     Q_template = "Detect the coding regions in the following nucleotide sequence: "
     A_template = "Here are the indexes of the detected coding regions: "
 
@@ -146,7 +146,7 @@ def create_dataset(ccds_df, cds_sequences, genome_fasta):
             description = f"CCDS_ID: {row[ 'ccds_id' ]}, NC_ACCESSION: {row[ 'nc_accession' ]}"
             is_consistent = 1 if np.all([cds in train_sample for cds in output_sequences.split(';')]) else 0
             # dataset.append( [ description, train_sample, target, is_consistent ] )
-            if is_consistent == 1 and len(train_sample) < 65536:
+            if is_consistent == 1 and len(train_sample) < max_sample_len:
                 dataset.append({
                     "messages": 
                         [
@@ -163,8 +163,6 @@ def create_dataset(ccds_df, cds_sequences, genome_fasta):
 
 def main():
 
-    # Define the file path
-    genome_file = "GCF_000001405.40_GRCh38.p14_genomic.fna"
     # Different project paths and settings
     res_dir = "res"
     output_dir = "output"
@@ -172,8 +170,7 @@ def main():
     ccds_file = "CCDS.current.txt"
     fasta_file = "CCDS_nucleotide.current.fna.gz"
     genome_file = "GCF_000001405.40_GRCh38.p14_genomic.fna"
-    output_file = "training_examples.json"
-    max_seq_length = 1000
+    max_sample_len = 8192
     
     ccds_df, cds_sequences, genome_fasta = load_resources(
         os.path.join(res_dir, ccds_file),   # DataFrame
@@ -185,7 +182,8 @@ def main():
     dataset = create_dataset(
         ccds_df, 
         cds_sequences, 
-        genome_fasta
+        genome_fasta,
+        max_sample_len
     )
 
     train_val, test = train_test_split(dataset, test_size=0.1, random_state=42)
@@ -203,15 +201,15 @@ def main():
 
     # print(f"The number of tuples with more than 2000 chars is: {acc}")
 
-    with open(os.path.join(dataset_folder, 'train_set.jsonl'), 'w') as json_file:
+    with open(os.path.join(dataset_folder, 'train_set_lt2^13.jsonl'), 'w') as json_file:
         for example in train:
             json_file.write(json.dumps(example) + '\n')
 
-    with open(os.path.join(dataset_folder, 'val_set.jsonl'), 'w') as json_file:
+    with open(os.path.join(dataset_folder, 'val_set_lt2^13.jsonl'), 'w') as json_file:
         for example in val:
             json_file.write(json.dumps(example) + '\n')
 
-    with open(os.path.join(dataset_folder, 'test_set.jsonl'), 'w') as json_file:
+    with open(os.path.join(dataset_folder, 'test_set_lt2^13.jsonl'), 'w') as json_file:
         for example in test:
             json_file.write(json.dumps(example) + '\n')
 
