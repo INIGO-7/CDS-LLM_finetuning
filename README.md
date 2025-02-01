@@ -79,7 +79,7 @@ Below is an outline of the most important directories and files:
 1. **Clone the repository**  
    ```bash
    git clone https://github.com/yourusername/cds-llm_finetuning.git
-   cd bioinformatics-llm
+   cd cds-llm_finetuning
    ```
 
 2. **Install dependencies**  
