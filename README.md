@@ -5,8 +5,6 @@
 
 An experimental project aimed at **fine-tuning Large Language Models (LLMs)** for identifying coding regions (CDS) in genomic sequences. We utilize **T5** and **GPT-4o-mini** models, exploring custom tokenization strategies, domain adaptation, and advanced hyperparameter tuning to improve accuracy on bioinformatics tasks.
 
----
-
 ## Table of Contents
 
 1. [Overview](#overview)
@@ -15,8 +13,6 @@ An experimental project aimed at **fine-tuning Large Language Models (LLMs)** fo
 4. [Usage](#usage)
 5. [Contributing](#contributing)
 6. [License](#license)
-
----
 
 ## Overview
 
@@ -28,8 +24,6 @@ This repository provides a **complete pipeline** for preparing datasets, trainin
 - **Domain-Specific Fine-Tuning:** We leverage **T5** and **GPT-4o-mini** for specialized tasks in human genome annotation.
 - **Automated Evaluation:** Scripts measure precision, recall, and F1-score for detected coding segments, providing an empirical view of model performance.
 - **Dataset Creation:** Methods for merging the Consensus Coding Sequence (CCDS) dataset with the human genome reference files.
-
----
 
 ## Repository Structure
 
@@ -66,8 +60,6 @@ Below is an outline of the most important directories and files:
 4. **res/**  
    Includes **images**, **external configs**, and **biological datasets** (CCDS and genome references). This layout helps keep the top-level directory uncluttered.
 
----
-
 ## Key Python Scripts
 
 - **\`dataset_creation.py\` & \`dataset_sampling.py\`**  
@@ -81,8 +73,6 @@ Below is an outline of the most important directories and files:
 
 - **\`t5_fine-tuning.py\`**  
   Main script for **T5-based training** (hyperparameters, training loops, checkpoint management). Demonstrates how to adapt T5 to genomic data.
-
----
 
 ## Usage
 
@@ -122,8 +112,6 @@ Below is an outline of the most important directories and files:
    ```
    Use the metrics printed on the console to assess performance. Detailed logs and outputs go to `output/`.
 
----
-
 ## Contributing
 
 Contributions are welcome! Please:
@@ -133,10 +121,8 @@ Contributions are welcome! Please:
 
 For questions or suggestions, open an issue in the **Issues** tab.
 
----
-
 ## License
-This project is released under [The Unlicense](LICENSE) and is dedicated to the public domain.
+Fine-Tuning Large Language Models for Bioinformatics Applications by Iñigo Fernández, Cem Graf is marked with CC0 1.0 Universal. To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
 
 ---
 
