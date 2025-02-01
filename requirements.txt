@@ -1,37 +1,35 @@
-asttokens==2.4.0
-backcall==0.2.0
-biopython==1.85
-colorama==0.4.6
-comm==0.1.4
-debugpy==1.8.0
-decorator==5.1.1
-executing==2.0.0
-ipykernel==6.25.2
-ipython==8.16.1
-jedi==0.19.1
-jupyter_client==8.4.0
-jupyter_core==5.4.0
-matplotlib-inline==0.1.6
-nest-asyncio==1.5.8
-numpy==2.2.1
-packaging==24.2
-pandas==2.2.3
-parso==0.8.3
-pexpect==4.9.0
-pickleshare==0.7.5
-platformdirs==3.11.0
-prompt-toolkit==3.0.39
-psutil==5.9.6
-ptyprocess==0.7.0
-pure-eval==0.2.2
-Pygments==2.16.1
-pysam==0.22.1
-python-dateutil==2.9.0.post0
-pytz==2024.2
-pyzmq==25.1.1
-six==1.17.0
-stack-data==0.6.3
-tornado==6.3.3
-traitlets==5.11.2
-tzdata==2024.2
-wcwidth==0.2.8
+anaconda-anon-usage @ file:///croot/anaconda-anon-usage_1710965072196/work
+archspec @ file:///croot/archspec_1709217642129/work
+boltons @ file:///work/perseverance-python-buildout/croot/boltons_1698851177130/work
+Brotli @ file:///croot/brotli-split_1714483155106/work
+certifi @ file:///croot/certifi_1725551672989/work/certifi
+cffi @ file:///croot/cffi_1726856441404/work
+charset-normalizer @ file:///croot/charset-normalizer_1721748349566/work
+conda @ file:///croot/conda_1729193882500/work
+conda-content-trust @ file:///croot/conda-content-trust_1714483159009/work
+conda-libmamba-solver @ file:///croot/conda-libmamba-solver_1727775630457/work/src
+conda-package-handling @ file:///croot/conda-package-handling_1718138267740/work
+conda_package_streaming @ file:///croot/conda-package-streaming_1718136078615/work
+cryptography @ file:///croot/cryptography_1724940562255/work
+distro @ file:///croot/distro_1714488253808/work
+frozendict @ file:///croot/frozendict_1713194832637/work
+idna @ file:///croot/idna_1714398848350/work
+jsonpatch @ file:///croot/jsonpatch_1714483231291/work
+jsonpointer==2.1
+libmambapy @ file:///croot/mamba-split_1725563367192/work/libmambapy
+menuinst @ file:///croot/menuinst_1723567589013/work
+packaging @ file:///croot/packaging_1720101850331/work
+platformdirs @ file:///work/perseverance-python-buildout/croot/platformdirs_1701732573265/work
+pluggy @ file:///work/perseverance-python-buildout/croot/pluggy_1698805497733/work
+pycosat @ file:///croot/pycosat_1714510623388/work
+pycparser @ file:///tmp/build/80754af9/pycparser_1636541352034/work
+PySocks @ file:///work/perseverance-python-buildout/croot/pysocks_1698845478203/work
+requests @ file:///croot/requests_1721410876868/work
+ruamel.yaml @ file:///croot/ruamel.yaml_1727980156079/work
+ruamel.yaml.clib @ file:///croot/ruamel.yaml.clib_1727769819935/work
+setuptools==75.1.0
+tqdm @ file:///croot/tqdm_1724853939799/work
+truststore @ file:///work/perseverance-python-buildout/croot/truststore_1701735771625/work
+urllib3 @ file:///croot/urllib3_1727769808118/work
+wheel==0.44.0
+zstandard @ file:///croot/zstandard_1728569189425/work
